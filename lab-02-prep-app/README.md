@@ -1,4 +1,4 @@
-# Lab 02. Prepapre Sample Application
+# Lab 02. Prepare Sample Application
 
 ## Azure Voting App
 

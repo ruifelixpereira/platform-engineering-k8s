@@ -13,65 +13,30 @@
     Check that the cert-manager pods have started successfully before continuing.
 
     ```bash
-    $ kubectl get pods -n cert-manager
-    NAME                                      READY   STATUS    RESTARTS   AGE
-    cert-manager-5597cff495-lmphj             1/1     Running   0          1m
-    cert-manager-cainjector-bd5f9c764-gvxm4   1/1     Running   0          1m
-    cert-manager-webhook-c4b5687dc-x66bj      1/1     Running   0          1m
+    kubectl get pods -n cert-manager
     ```
 
-    (Alternatively, you can wait for cert-manager to be ready with `cmctl check api --wait=2m` - see the [cert-manager documentation](https://cert-manager.io/docs/usage/cmctl/) for more information about `cmctl`.)
+    ![alt text](media/cert-manager.png)
 
-2. Create an Azure Service Principal. You'll need this to grant Azure Service Operator permissions to create resources in your subscription.
 
-    First, copy file `.env.template` to a new file `.env`, edit it and set the following environment variables to your Azure Tenant ID and Subscription ID with your values:
+2. Configure authentication and install ASO
 
-    ```bash
-    AZURE_TENANT_ID=<your-tenant-id-goes-here>
-    AZURE_SUBSCRIPTION_ID=<your-subscription-id-goes-here>
-    ```
+    There are several options but we are going to use a User Assigned Identity (UAI) configured for the aKS cluster. This UAI grants Azure Service Operator permissions to create resources in your subscription. In this example the UAI is configured to have 'Contributor' role on the subscription. To learn more about other authentication options, see the [authentication documentation](https://azure.github.io/azure-service-operator/guide/authentication/).
 
-    You can find these values by using the Azure CLI: az account show
-
-    Next, create a service principal with Contributor permissions for your subscription.
-
-    You can optionally use a service principal with a more restricted permission set (for example contributor to just a Resource Group), but that will restrict what you can do with ASO. See [using reduced permissions](https://azure.github.io/azure-service-operator/guide/authentication/reducing-access/#using-a-credential-for-aso-with-reduced-permissions) for more details.
+    First, copy file `.env.template` to a new file `.env`, edit it and customize the values for your environment. Next, run the script `install-aso-01.sh` to install the ASO v2.
 
     ```bash
-    ./create-sp-01.sh
+    ./install-aso-01.sh
     ```
     
-    This should give you output like the following:
-
-    ```bash
-    "appId": "xxxxxxxxxx",
-    "displayName": "azure-service-operator",
-    "name": "http://azure-service-operator",
-    "password": "xxxxxxxxxxx",
-    "tenant": "xxxxxxxxxxxxx"
-    ```
-
-    Once you have created a service principal, set the following variables to your app ID and password values:
-
-    ```bash
-    AZURE_CLIENT_ID=<your-client-id> # This is the appID from the service principal we created.
-    AZURE_CLIENT_SECRET=<your-client-secret> # This is the password from the service principal we created.
-    ```
-
-3. Install [the latest v2+ Helm chart](https://github.com/Azure/azure-service-operator/tree/main/v2/charts):
-
-    ```bash
-    helm repo add aso2 https://raw.githubusercontent.com/Azure/azure-service-operator/main/v2/charts
-    ```
+    The script will use a User Assigned Identity (UAI) and assign it the 'Contributor' role on the subscription. Finally, it will install the ASO v2 in the cluster with the below command:
 
     ```bash
     helm upgrade --install aso2 aso2/azure-service-operator \
         --create-namespace \
         --namespace=azureserviceoperator-system \
         --set azureSubscriptionID=$AZURE_SUBSCRIPTION_ID \
-        --set azureTenantID=$AZURE_TENANT_ID \
         --set azureClientID=$AZURE_CLIENT_ID \
-        --set azureClientSecret=$AZURE_CLIENT_SECRET \
         --set crdPattern='resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*;cache.azure.com/*'
     ```
 
@@ -81,77 +46,36 @@
 
     See [CRD management](https://azure.github.io/azure-service-operator/guide/crd-management/) for more details.
 
-    Alternatively you can install from the [release YAML directly](https://azure.github.io/azure-service-operator/guide/installing-from-yaml/).
 
-    To learn more about other authentication options, see the [authentication documentation](https://azure.github.io/azure-service-operator/guide/authentication/).
-
-
-### Usage
+### Usage and test
 
 Once the controller has been installed in your cluster, you should be able to run the following:
 
 ```bash
-$ kubectl get pods -n azureserviceoperator-system
-NAME                                                READY   STATUS    RESTARTS   AGE
-azureserviceoperator-controller-manager-5b4bfc59df-lfpqf   2/2     Running   0          24s
-
-# check out the logs for the running controller
-$ kubectl logs -n azureserviceoperator-system azureserviceoperator-controller-manager-5b4bfc59df-lfpqf manager 
-
-# let's create an Azure ResourceGroup in westcentralus with the name "aso-sample-rg"
-cat <<EOF | kubectl apply -f -
-apiVersion: resources.azure.com/v1api20200601
-kind: ResourceGroup
-metadata:
-  name: aso-sample-rg
-  namespace: default
-spec:
-  location: westcentralus
-EOF
-# resourcegroup.resources.azure.com/aso-sample-rg created
-
-# another alternative
-kubectl apply -f test-rg.yaml
-
-# let's see what the ResourceGroup resource looks like
-$ kubectl describe resourcegroups/aso-sample-rg
-Name:         aso-sample-rg
-Namespace:    default
-Labels:       <none>
-Annotations:  resource-id.azure.com: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/aso-sample-rg
-              resource-sig.azure.com: 1e3a37c42f6beadbe23d53cf0d271f02d2805d6e295a7e13d5f07bda1fc5b800
-API Version:  resources.azure.com/v1alpha1api20200601
-Kind:         ResourceGroup
-Metadata:
-  Creation Timestamp:  2021-08-23T23:59:06Z
-  Finalizers:
-    serviceoperator.azure.com/finalizer
-  Generation:  1
-Spec:
-  Azure Name:  aso-sample-rg
-  Location:    westcentralus
-Status:
-  Conditions:
-    Last Transition Time:  2021-08-23T23:59:13Z
-    Reason:                Succeeded
-    Status:                True
-    Type:                  Ready
-  Id:                      /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/aso-sample-rg
-  Location:                westcentralus
-  Name:                    aso-sample-rg
-  Provisioning State:      Succeeded
-Events:
-  Type    Reason             Age   From                     Message
-  ----    ------             ----  ----                     -------
-  Normal  BeginDeployment    32s   ResourceGroupController  Created new deployment to Azure with ID "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Resources/deployments/k8s_1629763146_19a8f8c2-046e-11ec-8e54-3eec50af7c79"
-  Normal  MonitorDeployment  32s   ResourceGroupController  Monitoring Azure deployment ID="/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Resources/deployments/k8s_1629763146_19a8f8c2-046e-11ec-8e54-3eec50af7c79", state="Accepted"
-  Normal  MonitorDeployment  27s   ResourceGroupController  Monitoring Azure deployment ID="/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Resources/deployments/k8s_1629763146_19a8f8c2-046e-11ec-8e54-3eec50af7c79", state="Succeeded"
+kubectl get pods -n azureserviceoperator-system
 ```
+
+![alt text](media/controllers.png)
+
+Let's test it and create an Azure ResourceGroup in westeurope with the name "aso-sample-rg":
+
+```bash
+kubectl apply -f test-rg.yaml
+```
+
+Let's see what the ResourceGroup resource looks like:
+
+```bash
+kubectl get resourcegroups/aso-sample-rg
+```
+
+Also, check it in the Azure Portal.
+
+Cleanup:
 
 ```bash
 # delete the ResourceGroup
 $ kubectl delete resourcegroups/aso-sample-rg
-# resourcegroup.resources.azure.com "aso-sample-rg" deleted
 ```
 
 For samples of additional resources, see the [resource samples directory](https://github.com/Azure/azure-service-operator/tree/main/v2/samples).

@@ -5,9 +5,8 @@ set -a && source .env && set +a
 
 # Required variables
 required_vars=(
-    "AZURE_TENANT_ID"
-    "AZURE_SUBSCRIPTION_ID"
-    "SP_NAME"
+    "resource_group"
+    "kbl_aks_uai"
 )
 
 # Set the current directory to where the script lives.
@@ -43,8 +42,23 @@ check_required_arguments() {
 # Check if all required arguments have been set
 check_required_arguments
 
-#
-# Create Service Principal.
-#
-az ad sp create-for-rbac -n $SP_NAME --role contributor \
-    --scopes /subscriptions/$AZURE_SUBSCRIPTION_ID
+subscriptionID=$(az account show --query id --output tsv)
+tenantID=$(az account show --query tenantId --output tsv)
+
+# Get the principal ID for a system-assigned managed identity.
+kbl_aks_uai_cli_id=$(az identity show --name $kbl_aks_uai  --resource-group $resource_group --query clientId --output tsv)
+
+# set permissions
+az role assignment create --assignee $kbl_aks_uai_cli_id --role "Contributor" --scope /subscriptions/$subscriptionID
+# here we are using a very coarse, high priviliged role, this is NOT RECOMMENDED, so please review with your security teams. Later you will be setting RBAC on resources so you need to ensure that whatever UAI you use has the right permissions. Also think about how you are securing access to this K8s cluster!
+
+# add helm repo
+helm repo add aso2 https://raw.githubusercontent.com/Azure/azure-service-operator/main/v2/charts
+
+# install ASO
+helm upgrade --install aso2 aso2/azure-service-operator \
+    --create-namespace \
+    --namespace=azureserviceoperator-system \
+    --set azureSubscriptionID=$subscriptionID \
+    --set azureClientID=$kbl_aks_uai_cli_id \
+    --set crdPattern='resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*;cache.azure.com/*'

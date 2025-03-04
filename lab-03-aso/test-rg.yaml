@@ -4,4 +4,4 @@ metadata:
   name: aso-sample-rg
   namespace: default
 spec:
-  location: westcentralus
+  location: westeurope
