@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# load environment variables
+set -a && source .env && set +a
+
+# Required variables
+required_vars=(
+    "resource_group"
+    "kbl_aks_uai"
+)
+
+# Set the current directory to where the script lives.
+cd "$(dirname "$0")"
+
+# Function to check if all required arguments have been set
+check_required_arguments() {
+    # Array to store the names of the missing arguments
+    local missing_arguments=()
+
+    # Loop through the array of required argument names
+    for arg_name in "${required_vars[@]}"; do
+        # Check if the argument value is empty
+        if [[ -z "${!arg_name}" ]]; then
+            # Add the name of the missing argument to the array
+            missing_arguments+=("${arg_name}")
+        fi
+    done
+
+    # Check if any required argument is missing
+    if [[ ${#missing_arguments[@]} -gt 0 ]]; then
+        echo -e "\nError: Missing required arguments:"
+        printf '  %s\n' "${missing_arguments[@]}"
+        [ ! \( \( $# == 1 \) -a \( "$1" == "-c" \) \) ] && echo "  Either provide a .env file or all the arguments, but not both at the same time."
+        [ ! \( $# == 22 \) ] && echo "  All arguments must be provided."
+        echo ""
+        exit 1
+    fi
+}
+
+####################################################################################
+
+# Check if all required arguments have been set
+check_required_arguments
+
+####################################################################################
+
+subscriptionID=$(az account show --query id --output tsv)
+tenantID=$(az account show --query tenantId --output tsv)
+
+# Get the principal ID for a system-assigned managed identity.
+kbl_aks_uai_cli_id=$(az identity show --name $kbl_aks_uai  --resource-group $resource_group --query clientId --output tsv)
+
+# set permissions
+az role assignment create --assignee $kbl_aks_uai_cli_id --role "Contributor" --scope /subscriptions/$subscriptionID
+# here we are using a very coarse, high priviliged role, this is NOT RECOMMENDED, so please review with your security teams. Later you will be setting RBAC on resources so you need to ensure that whatever UAI you use has the right permissions. Also think about how you are securing access to this K8s cluster!
+
+cat <<EOF | kubectl apply -f -
+apiVersion: azure.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: UserAssignedManagedIdentity
+  clientID: $kbl_aks_uai_cli_id
+  subscriptionID: $subscriptionID
+  tenantID: $tenantID
+EOF
