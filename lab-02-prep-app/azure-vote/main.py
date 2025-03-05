@@ -28,6 +28,10 @@ else:
 # Redis configurations
 redis_server = os.environ['REDIS']
 
+# Check if REDIS is a single hostname (e.g., myredis.redis.cache.windows.net) or contains a connection string (e.g., myredis.redis.cache.windows.net:6380,password=xxxx,ssl=True,abortConnect=False)
+if ":" in redis_server:
+    redis_server = redis_server.split(":")[0]
+
 # Redis Connection
 try:
     if "REDIS_PWD" in os.environ:

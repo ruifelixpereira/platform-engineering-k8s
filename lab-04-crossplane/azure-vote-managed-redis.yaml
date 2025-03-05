@@ -74,13 +74,13 @@ spec:
           valueFrom:
             secretKeyRef:
               name: redis-secret 
-              key: endpoint
+              key: "attribute.primary_connection_string"
               optional: false
         - name: REDIS_PWD
           valueFrom:
             secretKeyRef:
               name: redis-secret 
-              key: primaryKey
+              key: "attribute.primary_access_key"
               optional: false
 ---
 apiVersion: v1

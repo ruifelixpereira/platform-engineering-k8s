@@ -164,7 +164,7 @@ It may take a few minutes for the Azure Cache for Redis to be provisioned. In th
 When the application runs, a Kubernetes service exposes the application front end to the internet. This process can take a few minutes to complete.
 
 ```bash
-kubectl get service azure-vote-front -n azure-vote-03
+kubectl get service azure-vote-front -n azure-vote-04
 ```
 
 Copy the EXTERNAL-IP address from the output. To see the application in action, open a web browser to the external IP address of your service.
@@ -183,16 +183,14 @@ If you're interested in code for the application, it is available [here](https:/
 When you're finished with the sample application you can clean all of the Kubernetes and Azure resources up by deleting the azure-vote namespace in your cluster.
 
 ```bash
-kubectl delete namespace azure-vote-03
+kubectl delete namespace azure-vote-04
 ```
 
 Kubernetes will delete the web application pod and the operator will delete the Azure resource group and resources.
 
+## Compositions
 
-
-
-
-
+TODO
 
 ## References
 
