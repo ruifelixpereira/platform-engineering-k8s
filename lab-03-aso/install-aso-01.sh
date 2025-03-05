@@ -6,6 +6,7 @@ set -a && source .env && set +a
 # Required variables
 required_vars=(
     "resource_group"
+    "k8s_cluster_name"
     "kbl_aks_uai"
 )
 
@@ -51,6 +52,9 @@ kbl_aks_uai_cli_id=$(az identity show --name $kbl_aks_uai  --resource-group $res
 # set permissions
 az role assignment create --assignee $kbl_aks_uai_cli_id --role "Contributor" --scope /subscriptions/$subscriptionID
 # here we are using a very coarse, high priviliged role, this is NOT RECOMMENDED, so please review with your security teams. Later you will be setting RBAC on resources so you need to ensure that whatever UAI you use has the right permissions. Also think about how you are securing access to this K8s cluster!
+
+# set context
+kubectl config use-context $k8s_cluster_name
 
 # add helm repo
 helm repo add aso2 https://raw.githubusercontent.com/Azure/azure-service-operator/main/v2/charts

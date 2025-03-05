@@ -7,6 +7,10 @@
 1. Install [cert-manager](https://cert-manager.io/docs/installation/kubernetes/) on the cluster using the following command.
 
     ```bash
+    # set context
+    kubectl config use-context plat-eng-01
+
+    # install cert-manager
     kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.14.4/cert-manager.yaml
     ```
 
@@ -75,7 +79,7 @@ Cleanup:
 
 ```bash
 # delete the ResourceGroup
-$ kubectl delete resourcegroups/aso-sample-rg
+kubectl delete resourcegroups/aso-sample-rg
 ```
 
 For samples of additional resources, see the [resource samples directory](https://github.com/Azure/azure-service-operator/tree/main/v2/samples).

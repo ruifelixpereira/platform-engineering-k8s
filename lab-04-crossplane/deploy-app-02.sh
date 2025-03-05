@@ -5,9 +5,9 @@ set -a && source .env && set +a
 
 # Required variables
 required_vars=(
-    "resource_group"
-    "k8s_cluster_name"
-    "kbl_aks_uai"
+    "acr_name"
+    "image_name"
+    "image_tag"
 )
 
 # Set the current directory to where the script lives.
@@ -45,29 +45,19 @@ check_required_arguments
 
 ####################################################################################
 
-subscriptionID=$(az account show --query id --output tsv)
-tenantID=$(az account show --query tenantId --output tsv)
+# Login to ACR.
+az acr login --name $acr_name
 
-# Get the principal ID for a system-assigned managed identity.
-kbl_aks_uai_cli_id=$(az identity show --name $kbl_aks_uai  --resource-group $resource_group --query clientId --output tsv)
+# Get login server name
+acrLoginServer=$(az acr show --name $acr_name --query loginServer --output tsv)
 
-# set permissions
-az role assignment create --assignee $kbl_aks_uai_cli_id --role "Contributor" --scope /subscriptions/$subscriptionID
-# here we are using a very coarse, high priviliged role, this is NOT RECOMMENDED, so please review with your security teams. Later you will be setting RBAC on resources so you need to ensure that whatever UAI you use has the right permissions. Also think about how you are securing access to this K8s cluster!
+# Tag image
+export APP_NAME=my-azure-vote-04
+export IMAGE_COMPLETE_NAME=$acrLoginServer/$image_name:$image_tag
+echo "Deploying Azure Voting App $IMAGE_COMPLETE_NAME"
 
-# set context
-kubectl config use-context $k8s_cluster_name
+# Replace values and deploy app
+envsubst < azure-vote-managed-redis.yaml | kubectl apply -f -
 
-# Create a ProviderConfig
-cat <<EOF | kubectl apply -f -
-apiVersion: azure.upbound.io/v1beta1
-kind: ProviderConfig
-metadata:
-  name: default
-spec:
-  credentials:
-    source: UserAssignedManagedIdentity
-  clientID: $kbl_aks_uai_cli_id
-  subscriptionID: $subscriptionID
-  tenantID: $tenantID
-EOF
+# Check Pods
+kubectl get pods -n azure-vote-04

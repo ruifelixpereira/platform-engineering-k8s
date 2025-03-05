@@ -45,8 +45,6 @@ check_required_arguments
 
 ####################################################################################
 
-# Create image
-
 # Login to ACR.
 az acr login --name $acr_name
 

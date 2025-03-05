@@ -9,6 +9,10 @@ Crossplane is made up muliple providers for clouds and their resources, initally
 From your Terminal run:
 
 ```bash
+# set the right k8s context
+kubectl config use-context plat-eng-02
+
+```bash
 # Install up
 curl -sL "https://cli.upbound.io" | sh
 sudo mv up /usr/local/bin/
@@ -58,7 +62,7 @@ When we created the AKS cluster in the previous lab 01 we created a UAI for the 
 Run the following commands to get the UAI, set the permissions and configure the Crossplane Azure provider:
 
 ```bash
-./configure-provider-01.sh
+./config-provider-01.sh
 ```
 
 ## Deploying Resources & Providers
@@ -120,6 +124,74 @@ kubectl get providers.pkg.crossplane.io
 ```
 
 ![alt text](media/installed-providers.png)
+
+
+## Deploy the application and Azure resources
+
+The YAML documents in azure-vote-managed-redis.yaml create:
+
+- A Kubernetes namespace named azure-vote,
+- An Azure resource group named aso-redis-demo,
+- An Azure Cache for Redis instance.
+- A deployment and service for the popular [AKS voting sample app](https://github.com/Azure-Samples/azure-voting-app-redis).
+
+The redis.cache.azure.com instance is configured to retrieve two secrets that are produced by the Azure Cache for Redis instance - hostname and primaryKey. As described [here](https://azure.github.io/azure-service-operator/guide/secrets/#how-to-retrieve-secrets-created-by-azure), these secrets need to be mapped to our sample application and the container for our sample application will be blocked until these two secrets are created.
+
+The Voting Sample is configured with environment variables that read the secrets for the managed Redis hostname and access key, allowing the sample to use the managed cache.
+
+### Steps to install
+
+Run the provided script `deploy-app-02.sh` to deploy the application to the AKS cluster. Prior to run it copy the file `.env.template` to a new file `.env` and customize it according to your environment.
+
+```bash
+./deploy-app-02.sh
+```
+
+The operator will start creating the resource group and Azure Cache for Redis instance in Azure. You can monitor their progress with:
+
+```bash
+watch kubectl get -n azure-vote-04 resourcegroup,rediscache
+```
+
+You can also find the resource group in the Azure portal and watch the Azure Cache for Redis instance being created there.
+
+### Note
+It may take a few minutes for the Azure Cache for Redis to be provisioned. In that time, you may see some ResourceNotFound messages in the logs indicating that the secret, the Azure Cache for Redis or the application deployment are not ready. This is OK! Once the Redis instance is created, secrets will be created and will unblock the sample application container creation. All errors will eventually resolve once the Redis instance is provisioned. These errors are ASO monitoring the creation of each resource, allowing it to take the next step as soon as the resource is available.
+
+
+## Test the application
+
+When the application runs, a Kubernetes service exposes the application front end to the internet. This process can take a few minutes to complete.
+
+```bash
+kubectl get service azure-vote-front -n azure-vote-03
+```
+
+Copy the EXTERNAL-IP address from the output. To see the application in action, open a web browser to the external IP address of your service.
+
+Alternatively, for kind clusters, you can also use the following command
+
+```bash
+kubectl port-forward -n azure-vote service/azure-vote-front 8080:80
+```
+
+If you're interested in code for the application, it is available [here](https://github.com/Azure-Samples/azure-voting-app-redis).
+
+
+## Clean up
+
+When you're finished with the sample application you can clean all of the Kubernetes and Azure resources up by deleting the azure-vote namespace in your cluster.
+
+```bash
+kubectl delete namespace azure-vote-03
+```
+
+Kubernetes will delete the web application pod and the operator will delete the Azure resource group and resources.
+
+
+
+
+
 
 
 ## References

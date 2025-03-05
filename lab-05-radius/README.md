@@ -1,11 +1,11 @@
 # Lab 05. Using Radius
 
+[Radius](https://radapp.io/) is an open-source, cloud-native, application platform that enables developers and the operators that support them to define, deploy, and collaborate on cloud-native applications across public clouds and private infrastructure.
+
 Simple scneario with a container running the app and a cloud native database.
 
-![alt text](diagram.png)
+![alt text](media/diagram.png)
 
-## References
-- https://radapp.io/
 
 
 ## Step 1. Setup
@@ -27,7 +27,7 @@ cd first-app
 rad init
 ```
 
-![alt text](image.png)
+![alt text](media/radius.png)
 
 This does th following tasks:
 - Starting Radius services in your Kubernetes cluster
@@ -51,3 +51,7 @@ Cleanup:
 ```bash
 rad app delete first-app -y
 ```
+
+## References
+- [Radius](https://radapp.io/)
+

@@ -1,49 +1,47 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: azure-vote-03
+  name: azure-vote-04
 ---
-apiVersion: resources.azure.com/v1api20200601
+apiVersion: azure.upbound.io/v1beta1
 kind: ResourceGroup
 metadata:
   name: ${APP_NAME}
-  namespace: azure-vote-03
+  namespace: azure-vote-04
 spec:
-  location: westcentralus
+  forProvider:
+    location: West Europe
+    tags:
+      provisioner: crossplane
 ---
-apiVersion: cache.azure.com/v1api20201201
-kind: Redis
+apiVersion: cache.azure.upbound.io/v1beta1
+kind: RedisCache
 metadata:
   name: ${APP_NAME}-redis
-  namespace: azure-vote-03
+  namespace: azure-vote-04
 spec:
-  location: westcentralus
-  owner:
-    name: ${APP_NAME}
-  sku:
-    family: C
-    name: Basic
+  forProvider:
     capacity: 0
-  enableNonSslPort: true
-  minimumTlsVersion: "1.2"
-  redisConfiguration:
-    maxmemory-delta: "10"
-    maxmemory-policy: allkeys-lru
-  redisVersion: "6"
-  operatorSpec: 
-    secrets:
-      hostName:
-        name: redis-hostname
-        key: hostName
-      primaryKey:
-        name: redis-access-key
-        key: primaryKey
+    enableNonSslPort: true
+    minimumTlsVersion: "1.2"
+    family: C
+    location: West Europe
+    redisConfiguration:
+      - maxmemoryDelta: 10
+        maxmemoryPolicy: allkeys-lru
+    redisVersion: "6"
+    resourceGroupNameRef:
+      name: ${APP_NAME}
+    skuName: Basic
+  writeConnectionSecretToRef:
+    name: redis-secret
+    namespace: azure-vote-04
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: azure-vote-front
-  namespace: azure-vote-03
+  namespace: azure-vote-04
 spec:
   replicas: 1
   selector:
@@ -75,13 +73,13 @@ spec:
         - name: REDIS
           valueFrom:
             secretKeyRef:
-              name: redis-hostname 
-              key: hostName
+              name: redis-secret 
+              key: endpoint
               optional: false
         - name: REDIS_PWD
           valueFrom:
             secretKeyRef:
-              name: redis-access-key 
+              name: redis-secret 
               key: primaryKey
               optional: false
 ---
@@ -89,7 +87,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: azure-vote-front
-  namespace: azure-vote-03
+  namespace: azure-vote-04
 spec:
   type: LoadBalancer
   ports:
