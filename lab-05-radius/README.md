@@ -126,6 +126,19 @@ rad app graph -a azure-vote-rad -g default
 
 ![alt text](media/vote-rad.png)
 
+Test it:
+
+```bash
+# check services
+kubectl get svc -n default-azure-vote-rad
+
+# forward
+kubectl port-forward svc/votefront -n default-azure-vote-rad 8003:80
+
+# open in browser
+# http://localhost:8003
+```
+
 ## References
 
 - [Radius](https://radapp.io/)
