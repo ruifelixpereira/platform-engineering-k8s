@@ -3,12 +3,12 @@ extension radius
 @description('The Radius Application ID. Injected automatically by the rad CLI.')
 param application string
 
-resource demo 'Applications.Core/containers@2023-10-01-preview' = {
-  name: 'demo'
+resource votefront 'Applications.Core/containers@2023-10-01-preview' = {
+  name: 'votefront'
   properties: {
     application: application
     container: {
-      image: 'acrrfp000.azurecr.io/azure-vote-front:v1'
+      image: 'acrrfp000.azurecr.io/azure-vote-front:v3-rad'
       ports: {
         web: {
           containerPort: 80
@@ -17,7 +17,7 @@ resource demo 'Applications.Core/containers@2023-10-01-preview' = {
     }
     connections: {
       redis: {
-        source: db.id
+        source: voteback.id
       }
     }
   }
@@ -26,8 +26,8 @@ resource demo 'Applications.Core/containers@2023-10-01-preview' = {
 @description('The environment ID of your Radius Application. Set automatically by the rad CLI.')
 param environment string
 
-resource db 'Applications.Datastores/redisCaches@2023-10-01-preview' = {
-  name: 'db'
+resource voteback 'Applications.Datastores/redisCaches@2023-10-01-preview' = {
+  name: 'voteback'
   properties: {
     application: application
     environment: environment

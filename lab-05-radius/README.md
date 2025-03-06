@@ -106,6 +106,26 @@ rad app graph -a demo -g default-demo
 ![alt text](media/added.png)
 
 
+## Azure Vote native Radius
+
+Let's try to use this same app but creating natively in Radius:
+
+```bash
+cd azure-vote-rad
+rad init
+
+# check app graph - empty
+rad app graph -a azure-vote-rad -g default
+
+# start app
+rad run app.bicep
+
+# check now the app graph
+rad app graph -a azure-vote-rad -g default
+```
+
+![alt text](media/vote-rad.png)
+
 ## References
 
 - [Radius](https://radapp.io/)

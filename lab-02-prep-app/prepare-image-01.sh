@@ -48,6 +48,7 @@ check_required_arguments
 # Create image
 az acr build --registry $acr_name --image $image_name:$image_tag --file ./Dockerfile .
 #docker build -t $image_name:$image_tag .
+az acr build --registry $acr_name --image $image_name:$image_tag-rad --file ./Dockerfile.rad .
 
 # Login to ACR.
 #az acr login --name $acr_name
