@@ -139,6 +139,12 @@ kubectl port-forward svc/votefront -n default-azure-vote-rad 8003:80
 # http://localhost:8003
 ```
 
+Access Radius Dashboard UI:
+
+```bash
+kubectl port-forward svc/dashboard -n radius-system 8004:80
+```
+
 ## References
 
 - [Radius](https://radapp.io/)
